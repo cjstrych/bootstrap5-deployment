@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bootstrap5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bootstrap5-deployment
+  namespace: bootstrap5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bootstrap5
+  template:
+    metadata:
+      labels:
+        app: bootstrap5
+    spec:
+      # Use UBI-Minimal for the git operations (All Red Hat)
+      initContainers:
+      - name: git-clone
+        image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            microdnf install -y git-core
+            ## Clone into Red Hat S2I Directory
+            git clone https://github.com/cjstrych/bootstrap5 /opt/app-root/src
+            ## Fix Permissions for the UBI NON-ROOT User (1001)
+            chown -R 1001:0 /opt/app-root/src
+            chmod -R g+rwX /opt/app-root/src
+        volumeMounts:
+        - name: content
+          mountPath: /opt/app-root/src
+      containers:
+      - name: ubi9-php82
+        image: registry.access.redhat.com/ubi9/php-82:latest
+        ## Start the Apache/PHP Process via Red Hat Source-to-Image (S2I)
+        command: ["/usr/libexec/s2i/run"]
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+        volumeMounts:
+        - name: content
+          mountPath: /opt/app-root/src
+      volumes:
+      - name: content
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bootstrap5-service
+  namespace: bootstrap5
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: bootstrap5
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bootstrap5-ingress
+  namespace: bootstrap5
+  annotations:
+    ingress.class: haproxy
+    haproxy.org/check: "true"
+spec:
+  rules:
+  - host: bootstrap5.cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: bootstrap5-service
+            port:
+              number: 80
