@@ -18,7 +18,7 @@ spec:
       labels:
         app: bootstrap5
     spec:
-      # Use UBI-Minimal for the git operations (All Red Hat)
+      ## Red Hat UBI-Minimal for the Git Operations/initContainers
       initContainers:
       - name: git-clone
         image: registry.access.redhat.com/ubi9/ubi-minimal:latest
@@ -46,7 +46,7 @@ spec:
             cpu: "500m"
             memory: "512Mi"
           requests:
-            cpu: "100m"
+            cpu: "250m"
             memory: "256Mi"
         volumeMounts:
         - name: content
@@ -88,3 +88,30 @@ spec:
             name: bootstrap5-service
             port:
               number: 80
+---
+## HorizontalPodAutoscaler with CPU and Memory Metrics
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bootstrap5-autoscaler
+  namespace: bootstrap5
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bootstrap5-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 50
