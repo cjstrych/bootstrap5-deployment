@@ -48,7 +48,7 @@ spec:
                         - bootstrap5
                 topologyKey: "kubernetes.io/hostname"
 
-      ## Red Hat UBI-Minimal for the Git Operations/initContainers
+      ## Red Hat UBI-Minimal for the initContainer Git Clone Operation
       initContainers:
         - name: ubi9-minimal
           image: registry.access.redhat.com/ubi9/ubi-minimal:latest
