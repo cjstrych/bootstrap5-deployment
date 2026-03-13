@@ -9,7 +9,7 @@ metadata:
   name: bootstrap5-deployment
   namespace: bootstrap5
 spec:
-  replicas: 3
+  replicas: 5
   selector:
     matchLabels:
       app: bootstrap5
