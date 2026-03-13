@@ -1,8 +1,10 @@
+## Namespace
 apiVersion: v1
 kind: Namespace
 metadata:
   name: bootstrap5
 ---
+## Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,7 +22,7 @@ spec:
     spec:
       ## Red Hat UBI-Minimal for the Git Operations/initContainers
       initContainers:
-      - name: git-clone
+      - name: ubi9-minimal
         image: registry.access.redhat.com/ubi9/ubi-minimal:latest
         command: ["/bin/sh", "-c"]
         args:
@@ -55,6 +57,7 @@ spec:
       - name: content
         emptyDir: {}
 ---
+## Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -68,6 +71,7 @@ spec:
   selector:
     app: bootstrap5
 ---
+## HAProxy Ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -89,7 +93,7 @@ spec:
             port:
               number: 80
 ---
-## HorizontalPodAutoscaler with CPU and Memory Metrics
+## HorizontalPodAutoscaler with CPU and Memory Resources
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -115,3 +119,15 @@ spec:
       target:
         type: Utilization
         averageUtilization: 50
+---
+## PodDisruptionBudget to Ensure Availability During Node Maintenance
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: bootstrap5-pdb
+  namespace: bootstrap5
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: bootstrap5
